@@ -5,6 +5,8 @@ A simple tool for the libgdx Polygon class. You can draw a polygon around a spri
 
 ![No image found](https://imagr.eu/up/vsKRr_example.png)
 
+**It is a standalone tool, but if you need it you can add it to your build file.**
+
 ## For gradle
 Step 1. Add the JitPack repository to your build file
 ```
