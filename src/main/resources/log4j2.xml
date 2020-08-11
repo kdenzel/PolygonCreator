@@ -9,7 +9,7 @@
         </File>
     </Appenders>
     <Loggers>
-        <Logger name="de.kswmd" level="DEBUG">
+        <Logger name="de.kswmd" level="INFO">
             <AppenderRef ref="appLog"/>
         </Logger>
         <Root level="error">

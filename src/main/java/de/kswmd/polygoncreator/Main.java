@@ -25,6 +25,7 @@ public class Main extends javax.swing.JFrame {
     private static final Logger LOGGER = LogManager.getLogger();
     private JFileChooser imgFileChooser;
     private JFileChooser exportPolygonChooser;
+    private StringBuilder helpMessage;
 
     /**
      * Creates new form Main
@@ -37,7 +38,12 @@ public class Main extends javax.swing.JFrame {
         imgFileChooser.setFileFilter(imageFilter);
 
         exportPolygonChooser = new JFileChooser();
-
+        StringBuilder sb = new StringBuilder();
+        sb.append("Left Click: Set vertex.\n");
+        sb.append("Left Click (on vertex pressed): Drag vertex.\n");
+        sb.append("Right Click (on vertex): Delete vertex.\n");
+        sb.append("Scroll: zoom in and out");
+        helpMessage = sb;
         LOGGER.debug("Components initialized.");
     }
 
@@ -52,19 +58,29 @@ public class Main extends javax.swing.JFrame {
 
         jScrollPane = new javax.swing.JScrollPane();
         decoratorPanel = new de.kswmd.polygoncreator.DecoratorPanel();
-        jMenuBar1 = new javax.swing.JMenuBar();
-        jMenu = new javax.swing.JMenu();
+        jMenuBar = new javax.swing.JMenuBar();
+        fileMenu = new javax.swing.JMenu();
         openMenuItem = new javax.swing.JMenuItem();
         exportMenuItem = new javax.swing.JMenuItem();
+        helpMenu = new javax.swing.JMenu();
+        infoMenuItem = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
+        decoratorPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent evt) {
+                decoratorPanelMouseDragged(evt);
+            }
+        });
         decoratorPanel.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
             public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
                 decoratorPanelMouseWheelMoved(evt);
             }
         });
         decoratorPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                decoratorPanelMousePressed(evt);
+            }
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 decoratorPanelMouseReleased(evt);
             }
@@ -83,7 +99,7 @@ public class Main extends javax.swing.JFrame {
 
         jScrollPane.setViewportView(decoratorPanel);
 
-        jMenu.setText("File");
+        fileMenu.setText("File");
 
         openMenuItem.setText("Open");
         openMenuItem.setToolTipText("");
@@ -92,7 +108,7 @@ public class Main extends javax.swing.JFrame {
                 openMenuItemActionPerformed(evt);
             }
         });
-        jMenu.add(openMenuItem);
+        fileMenu.add(openMenuItem);
 
         exportMenuItem.setText("Export Polygon");
         exportMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -100,27 +116,39 @@ public class Main extends javax.swing.JFrame {
                 exportMenuItemActionPerformed(evt);
             }
         });
-        jMenu.add(exportMenuItem);
+        fileMenu.add(exportMenuItem);
 
-        jMenuBar1.add(jMenu);
+        jMenuBar.add(fileMenu);
 
-        setJMenuBar(jMenuBar1);
+        helpMenu.setText("Help");
+
+        infoMenuItem.setText("Info");
+        infoMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                infoMenuItemActionPerformed(evt);
+            }
+        });
+        helpMenu.add(infoMenuItem);
+
+        jMenuBar.add(helpMenu);
+
+        setJMenuBar(jMenuBar);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap()
                 .addComponent(jScrollPane)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap()
                 .addComponent(jScrollPane)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         pack();
@@ -143,11 +171,17 @@ public class Main extends javax.swing.JFrame {
     }//GEN-LAST:event_openMenuItemActionPerformed
 
     private void decoratorPanelMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMouseReleased
-        LOGGER.debug(evt.getX() + ":" + evt.getY());
-        if (evt.getButton() == MouseEvent.BUTTON1) {
-            decoratorPanel.addVertex(evt.getX(), evt.getY());
-        } else if (evt.getButton() == MouseEvent.BUTTON3) {
-            decoratorPanel.removeLastVertex();
+        LOGGER.debug("Released at " + evt);
+        if (!decoratorPanel.hasSelectedPoint()) {
+            if (evt.getButton() == MouseEvent.BUTTON1) {
+                LOGGER.debug("Create vertex at [" + evt.getX() + ":" + evt.getY() + "]");
+                decoratorPanel.addVertex(evt.getX(), evt.getY());
+            } else if (evt.getButton() == MouseEvent.BUTTON3) {
+                LOGGER.debug("Remove vertex at [" + evt.getX() + ":" + evt.getY() + "]");
+                decoratorPanel.removeVertex(evt.getX(), evt.getY());
+            }
+        } else {
+            decoratorPanel.removeSelection();
         }
         decoratorPanel.repaint();
     }//GEN-LAST:event_decoratorPanelMouseReleased
@@ -167,20 +201,20 @@ public class Main extends javax.swing.JFrame {
             if (userSelection == JFileChooser.APPROVE_OPTION) {
                 File fileToSave = exportPolygonChooser.getSelectedFile();
                 LOGGER.debug("Save as file: " + fileToSave.getAbsolutePath());
-                if(!fileToSave.exists()){
+                if (!fileToSave.exists()) {
                     try {
                         fileToSave.createNewFile();
                         decoratorPanel.export(fileToSave);
                     } catch (IOException ex) {
                         LOGGER.error("Something went wrong in saving file " + fileToSave.getAbsolutePath(), ex);
-                        JOptionPane.showMessageDialog(this, "Couldn't save file " + fileToSave.getAbsolutePath(),"Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Couldn't save file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } else {
                     try {
                         decoratorPanel.export(fileToSave);
                     } catch (IOException ex) {
                         LOGGER.error("Something went wrong in writing to file " + fileToSave.getAbsolutePath(), ex);
-                        JOptionPane.showMessageDialog(this, "Couldn't write to file " + fileToSave.getAbsolutePath(),"Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Couldn't write to file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -188,6 +222,27 @@ public class Main extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "You need at least 3 Vertices.", "Not enough vertices", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_exportMenuItemActionPerformed
+
+    private void decoratorPanelMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMousePressed
+        LOGGER.debug("Pressed at " + evt);
+        if (evt.getButton() == MouseEvent.BUTTON1) {
+            decoratorPanel.selectPoint(evt.getX(), evt.getY());
+        }
+    }//GEN-LAST:event_decoratorPanelMousePressed
+
+    private void decoratorPanelMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMouseDragged
+        LOGGER.debug("Dragged at " + evt);
+        LOGGER.debug("HAS POINT? " + decoratorPanel.hasSelectedPoint());
+        if (decoratorPanel.hasSelectedPoint()) {
+            LOGGER.debug("Move point");
+            decoratorPanel.moveSelectedPoint(evt.getX(), evt.getY());
+            decoratorPanel.repaint();
+        }
+    }//GEN-LAST:event_decoratorPanelMouseDragged
+
+    private void infoMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_infoMenuItemActionPerformed
+        JOptionPane.showMessageDialog(this, helpMessage.toString(), "Help", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_infoMenuItemActionPerformed
 
     /**
      * @param args the command line arguments
@@ -227,8 +282,10 @@ public class Main extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private de.kswmd.polygoncreator.DecoratorPanel decoratorPanel;
     private javax.swing.JMenuItem exportMenuItem;
-    private javax.swing.JMenu jMenu;
-    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenu fileMenu;
+    private javax.swing.JMenu helpMenu;
+    private javax.swing.JMenuItem infoMenuItem;
+    private javax.swing.JMenuBar jMenuBar;
     private javax.swing.JScrollPane jScrollPane;
     private javax.swing.JMenuItem openMenuItem;
     // End of variables declaration//GEN-END:variables

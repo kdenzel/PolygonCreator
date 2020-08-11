@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Optional;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
@@ -23,8 +24,10 @@ import javax.swing.JPanel;
 public class DecoratorPanel extends JPanel {
 
     private BufferedImage image;
-    private Polygon polygon = new Polygon();
-    private int dotRadius = 2;
+    private File sourceFile;
+    private final Polygon polygon = new Polygon();
+    private Optional<Point> selectedPoint = Optional.empty();
+    private final int dotRadius = 2;
     private int scaling;
 
     public void setImage(BufferedImage image) {
@@ -33,6 +36,7 @@ public class DecoratorPanel extends JPanel {
 
     public void setImage(File file) throws IOException {
         image = ImageIO.read(file);
+        sourceFile = file;
         if (image != null) {
             scaling = 1;
             setSize(image.getWidth(), image.getHeight());
@@ -96,28 +100,91 @@ public class DecoratorPanel extends JPanel {
         }
     }
 
+    public void removeVertex(int x, int y) {
+        if (image != null) {
+            int zeroX = (getWidth() / 2 - image.getWidth() * scaling / 2);
+            int zeroY = (getHeight() / 2 - image.getHeight() * scaling / 2);
+            int newX = (x - zeroX) / scaling;
+            int newY = (y - zeroY) / scaling;
+            if (newX >= 0 && newX <= image.getWidth() && newY >= 0 && newY <= image.getHeight()) {
+                for (int i = 0; i < polygon.size(); i++) {
+                    Point p = polygon.get(i);
+                    if (newX <= p.x + dotRadius && newX >= p.x - dotRadius && newY <= p.y + dotRadius && newY >= p.y - dotRadius) {
+                        polygon.removeVertex(p);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public void selectPoint(int x, int y) {
+        if (image != null) {
+            int zeroX = (getWidth() / 2 - image.getWidth() * scaling / 2);
+            int zeroY = (getHeight() / 2 - image.getHeight() * scaling / 2);
+            int newX = (x - zeroX) / scaling;
+            int newY = (y - zeroY) / scaling;
+            if (newX >= 0 && newX <= image.getWidth() && newY >= 0 && newY <= image.getHeight()) {
+                for (int i = 0; i < polygon.size(); i++) {
+                    Point p = polygon.get(i);
+                    if (newX <= p.x + dotRadius && newX >= p.x - dotRadius && newY <= p.y + dotRadius && newY >= p.y - dotRadius) {
+                        selectedPoint = Optional.of(p);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean hasSelectedPoint() {
+        return !selectedPoint.isEmpty();
+    }
+
+    public void moveSelectedPoint(int x, int y) {
+        if (image != null) {
+            int zeroX = (getWidth() / 2 - image.getWidth() * scaling / 2);
+            int zeroY = (getHeight() / 2 - image.getHeight() * scaling / 2);
+            int newX = (x - zeroX) / scaling;
+            int newY = (y - zeroY) / scaling;
+            if (newX >= 0 && newX <= image.getWidth() && newY >= 0 && newY <= image.getHeight()) {
+                if (hasSelectedPoint()) {
+                    Point p = selectedPoint.get();
+                    p.x = newX;
+                    p.y = newY;
+                }
+            }
+        }
+    }
+
+    public void removeSelection() {
+        selectedPoint = Optional.empty();
+    }
+
     public void removeLastVertex() {
         polygon.removeLastVertex();
     }
-    
+
     public boolean isPolygon() {
         return polygon.isPolygon();
     }
-
+    
     public void export(File fileToSave) throws IOException {
         FileWriter myWriter = new FileWriter(fileToSave);
         StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        for(int i = 0; i < polygon.size(); i++){
+        sb.append("Values differ from 0 to 1 where 1 equals width/height depending on x or y axis beginning with 0/0 on left down corner.\n");
+        sb.append("File: ");
+        sb.append(sourceFile.getAbsolutePath());
+        sb.append("\n{");
+        for (int i = 0; i < polygon.size(); i++) {
             Point p = polygon.get(i);
-            float x = (float)p.x / image.getWidth();
-            float y = (float)(image.getHeight()-p.y) / image.getHeight();
+            float x = (float) p.x / image.getWidth();
+            float y = (float) (image.getHeight() - p.y) / image.getHeight();
             sb.append(x);
             sb.append("f");
             sb.append(",");
             sb.append(y);
             sb.append("f");
-            if(i != polygon.size() - 1){
+            if (i != polygon.size() - 1) {
                 sb.append(",");
             }
         }
