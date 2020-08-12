@@ -8,13 +8,18 @@ package de.kswmd.polygoncreator;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 /**
  *
@@ -66,6 +71,11 @@ public class Main extends javax.swing.JFrame {
         infoMenuItem = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         decoratorPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             public void mouseDragged(java.awt.event.MouseEvent evt) {
@@ -156,28 +166,28 @@ public class Main extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMenuItemActionPerformed
+        LOGGER.debug("Open filechooser.");
         int r = imgFileChooser.showOpenDialog(this);
         if (r == JFileChooser.APPROVE_OPTION) {
             try {
-                decoratorPanel.setImage(imgFileChooser.getSelectedFile());
+                File selectedFile = imgFileChooser.getSelectedFile();
+                decoratorPanel.setImage(selectedFile);
                 jScrollPane.setPreferredSize(decoratorPanel.getSize());
                 this.pack();
                 this.setLocationRelativeTo(null);
+                LOGGER.debug("Chosen file: " + selectedFile.getAbsolutePath());
             } catch (IOException ex) {
-                LOGGER.warn("Couldn't convert file to buffered image " + ex);
-                JOptionPane.showMessageDialog(this, "Something went wrong " + ex.getMessage());
+                LOGGER.warn("Couldn't convert file to buffered image", ex);
+                JOptionPane.showMessageDialog(this, "Something is wrong with the file. " + ex.getMessage());
             }
         }
     }//GEN-LAST:event_openMenuItemActionPerformed
 
     private void decoratorPanelMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMouseReleased
-        LOGGER.debug("Released at " + evt);
         if (!decoratorPanel.hasSelectedPoint()) {
             if (evt.getButton() == MouseEvent.BUTTON1) {
-                LOGGER.debug("Create vertex at [" + evt.getX() + ":" + evt.getY() + "]");
                 decoratorPanel.addVertex(evt.getX(), evt.getY());
             } else if (evt.getButton() == MouseEvent.BUTTON3) {
-                LOGGER.debug("Remove vertex at [" + evt.getX() + ":" + evt.getY() + "]");
                 decoratorPanel.removeVertex(evt.getX(), evt.getY());
             }
         } else {
@@ -197,44 +207,53 @@ public class Main extends javax.swing.JFrame {
 
     private void exportMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportMenuItemActionPerformed
         if (decoratorPanel.isPolygon()) {
-            int userSelection = exportPolygonChooser.showSaveDialog(this);
-            if (userSelection == JFileChooser.APPROVE_OPTION) {
-                File fileToSave = exportPolygonChooser.getSelectedFile();
-                LOGGER.debug("Save as file: " + fileToSave.getAbsolutePath());
-                if (!fileToSave.exists()) {
-                    try {
-                        fileToSave.createNewFile();
-                        decoratorPanel.export(fileToSave);
-                    } catch (IOException ex) {
-                        LOGGER.error("Something went wrong in saving file " + fileToSave.getAbsolutePath(), ex);
-                        JOptionPane.showMessageDialog(this, "Couldn't save file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                } else {
-                    try {
-                        decoratorPanel.export(fileToSave);
-                    } catch (IOException ex) {
-                        LOGGER.error("Something went wrong in writing to file " + fileToSave.getAbsolutePath(), ex);
-                        JOptionPane.showMessageDialog(this, "Couldn't write to file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
+            boolean canceled;
+            do {
+                canceled = false;
+                int userSelection = exportPolygonChooser.showSaveDialog(this);
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    File fileToSave = exportPolygonChooser.getSelectedFile();
+                    LOGGER.debug("Save as file: " + fileToSave.getAbsolutePath());
+                    if (!fileToSave.exists()) {
+                        try {
+                            fileToSave.createNewFile();
+                            decoratorPanel.export(fileToSave);
+                        } catch (IOException ex) {
+                            LOGGER.error("Something went wrong in saving file " + fileToSave.getAbsolutePath(), ex);
+                            JOptionPane.showMessageDialog(this, "Couldn't save file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        int result = JOptionPane.showConfirmDialog(this, "Are you sure you wan't to override this file?");
+                        if (result == JOptionPane.OK_OPTION) {
+                            LOGGER.debug("Override.");
+                            try {
+                                decoratorPanel.export(fileToSave);
+                            } catch (IOException ex) {
+                                LOGGER.error("Something went wrong in writing to file " + fileToSave.getAbsolutePath(), ex);
+                                JOptionPane.showMessageDialog(this, "Couldn't write to file " + fileToSave.getAbsolutePath(), "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } else {
+                            LOGGER.debug("Override canceled.");
+                            canceled = true;
+                        }
                     }
                 }
-            }
+            }while(canceled);
+        
         } else {
+            LOGGER.debug("Couldn't export the polygon. Maybe no image loaded or not enough vertices? Need at least 3 vertices.");
             JOptionPane.showMessageDialog(this, "You need at least 3 Vertices.", "Not enough vertices", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_exportMenuItemActionPerformed
 
     private void decoratorPanelMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMousePressed
-        LOGGER.debug("Pressed at " + evt);
         if (evt.getButton() == MouseEvent.BUTTON1) {
             decoratorPanel.selectPoint(evt.getX(), evt.getY());
         }
     }//GEN-LAST:event_decoratorPanelMousePressed
 
     private void decoratorPanelMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_decoratorPanelMouseDragged
-        LOGGER.debug("Dragged at " + evt);
-        LOGGER.debug("HAS POINT? " + decoratorPanel.hasSelectedPoint());
         if (decoratorPanel.hasSelectedPoint()) {
-            LOGGER.debug("Move point");
             decoratorPanel.moveSelectedPoint(evt.getX(), evt.getY());
             decoratorPanel.repaint();
         }
@@ -244,10 +263,28 @@ public class Main extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(this, helpMessage.toString(), "Help", JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_infoMenuItemActionPerformed
 
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        LOGGER.debug("BYE.");
+    }//GEN-LAST:event_formWindowClosing
+
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        boolean debug = Arrays.stream(args).anyMatch(s -> {
+            return s.equals("-v") || s.equals("-verbose");
+        });
+        if (debug) {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            Configuration config = context.getConfiguration();
+            LoggerConfig loggerConfig = config.getLoggerConfig("de.kswmd");
+            loggerConfig.setLevel(Level.DEBUG);
+            context.updateLoggers();
+            LOGGER.debug("Arguments: " + Arrays.toString(args));
+        } else {
+            LOGGER.info("Use -v or -verbose to print debug output.");
+        }
+
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.

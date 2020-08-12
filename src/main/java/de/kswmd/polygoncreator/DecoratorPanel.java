@@ -6,8 +6,10 @@
 package de.kswmd.polygoncreator;
 
 import de.kswmd.polygoncreator.poly.Polygon;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -16,12 +18,16 @@ import java.io.IOException;
 import java.util.Optional;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  *
  * @author kai
  */
 public class DecoratorPanel extends JPanel {
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private BufferedImage image;
     private File sourceFile;
@@ -67,7 +73,9 @@ public class DecoratorPanel extends JPanel {
         if (image != null) {
             int zeroX = (getWidth() / 2 - image.getWidth() * scaling / 2);
             int zeroY = (getHeight() / 2 - image.getHeight() * scaling / 2);
+            drawGrid(g, zeroX, zeroY);
             g.drawImage(image, zeroX, zeroY, image.getWidth() * scaling, image.getHeight() * scaling, null);
+            g.setColor(Color.BLACK);
             g.drawRect(zeroX, zeroY, image.getWidth() * scaling - 1, image.getHeight() * scaling - 1);
             if (polygon.hasVertices()) {
                 g.setColor(Color.CYAN);
@@ -82,10 +90,48 @@ public class DecoratorPanel extends JPanel {
                         Point firstPoint = polygon.get(0);
                         g.drawLine(zeroX + p.x * scaling, zeroY + p.y * scaling, zeroX + firstPoint.x * scaling, zeroY + firstPoint.y * scaling);
                     }
-                    //g.drawString(String.valueOf(i+1), p.x, p.y);
                 }
+                Graphics2D g2d = (Graphics2D)g;
+                AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
+                g2d.setComposite(composite);
+                g2d.setColor(Color.CYAN);
+                int[] xs = new int[polygon.size()];
+                int[] ys = new int[polygon.size()];
+                for (int i = 0; i < polygon.size(); i++) {
+                    Point p = polygon.get(i);
+                    xs[i] = zeroX + p.x * scaling;
+                    ys[i] = zeroY + p.y * scaling;
+                }
+                g2d.fillPolygon(xs, ys, polygon.size());
             }
         }
+    }
+
+    private void drawGrid(Graphics g, int zeroX, int zeroY) {
+        int squareSize = 10;
+        boolean colorGrey;
+        for (int y = 0; y < image.getHeight() * scaling; y += squareSize * scaling) {
+            colorGrey = y % (squareSize * scaling * 2) == 0;
+            for (int x = 0; x < image.getWidth() * scaling; x += squareSize * scaling) {
+                if (colorGrey) {
+                    g.setColor(Color.lightGray);
+                    colorGrey = false;
+                } else {
+                    g.setColor(Color.WHITE);
+                    colorGrey = true;
+                }
+                int width = squareSize * scaling;
+                int height = squareSize * scaling;
+                if (x + width > image.getWidth() * scaling) {
+                    width = width - (x + width - image.getWidth() * scaling);
+                }
+                if (y + height > image.getHeight() * scaling) {
+                    height = height - (y + height - image.getHeight() * scaling);
+                }
+                g.fillRect(zeroX + x, zeroY + y, width, height);
+            }
+        }
+
     }
 
     public void addVertex(int x, int y) {
@@ -95,6 +141,7 @@ public class DecoratorPanel extends JPanel {
             int newX = (x - zeroX) / scaling;
             int newY = (y - zeroY) / scaling;
             if (newX >= 0 && newX <= image.getWidth() && newY >= 0 && newY <= image.getHeight()) {
+                debugPoint("Add vertex at", newX, newY);
                 polygon.addVertex(new Point(newX, newY));
             }
         }
@@ -110,6 +157,7 @@ public class DecoratorPanel extends JPanel {
                 for (int i = 0; i < polygon.size(); i++) {
                     Point p = polygon.get(i);
                     if (newX <= p.x + dotRadius && newX >= p.x - dotRadius && newY <= p.y + dotRadius && newY >= p.y - dotRadius) {
+                        debugPoint("Remove vertex at", p);
                         polygon.removeVertex(p);
                         break;
                     }
@@ -129,6 +177,7 @@ public class DecoratorPanel extends JPanel {
                     Point p = polygon.get(i);
                     if (newX <= p.x + dotRadius && newX >= p.x - dotRadius && newY <= p.y + dotRadius && newY >= p.y - dotRadius) {
                         selectedPoint = Optional.of(p);
+                        debugPoint("Select point at", p);
                         break;
                     }
                 }
@@ -157,7 +206,10 @@ public class DecoratorPanel extends JPanel {
     }
 
     public void removeSelection() {
-        selectedPoint = Optional.empty();
+        if (selectedPoint.isPresent()) {
+            debugPoint("Remove selection from point", selectedPoint.get());
+            selectedPoint = Optional.empty();
+        }
     }
 
     public void removeLastVertex() {
@@ -167,7 +219,7 @@ public class DecoratorPanel extends JPanel {
     public boolean isPolygon() {
         return polygon.isPolygon();
     }
-    
+
     public void export(File fileToSave) throws IOException {
         FileWriter myWriter = new FileWriter(fileToSave);
         StringBuilder sb = new StringBuilder();
@@ -191,6 +243,16 @@ public class DecoratorPanel extends JPanel {
         sb.append("}");
         myWriter.write(sb.toString());
         myWriter.close();
+    }
+
+    private void debugPoint(String message, Point p) {
+        this.debugPoint(message, p.x, p.y);
+    }
+
+    private void debugPoint(String message, int px, int py) {
+        float x = (float) px / image.getWidth();
+        float y = (float) (image.getHeight() - py) / image.getHeight();
+        LOGGER.debug(message + " [x:" + x + "|y:" + y + "]");
     }
 
 }

@@ -4,13 +4,13 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
-        <File name="appLog" fileName="logs/polygoncreator.log" append="false">
+        <!--<File name="appLog" fileName="logs/polygoncreator.log" append="false">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-        </File>
+        </File>-->
     </Appenders>
     <Loggers>
         <Logger name="de.kswmd" level="INFO">
-            <AppenderRef ref="appLog"/>
+            <!--<AppenderRef ref="appLog"/>-->
         </Logger>
         <Root level="error">
             <AppenderRef ref="Console"/>
