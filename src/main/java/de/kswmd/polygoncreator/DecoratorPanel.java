@@ -92,7 +92,7 @@ public class DecoratorPanel extends JPanel {
                     }
                 }
                 Graphics2D g2d = (Graphics2D)g;
-                AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
+                AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f);
                 g2d.setComposite(composite);
                 g2d.setColor(Color.CYAN);
                 int[] xs = new int[polygon.size()];
