@@ -91,7 +91,7 @@ public class DecoratorPanel extends JPanel {
                         g.drawLine(zeroX + p.x * scaling, zeroY + p.y * scaling, zeroX + firstPoint.x * scaling, zeroY + firstPoint.y * scaling);
                     }
                 }
-                Graphics2D g2d = (Graphics2D)g;
+                Graphics2D g2d = (Graphics2D) g;
                 AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f);
                 g2d.setComposite(composite);
                 g2d.setColor(Color.CYAN);
@@ -226,7 +226,15 @@ public class DecoratorPanel extends JPanel {
         sb.append("Values differ from 0 to 1 where 1 equals width/height depending on x or y axis beginning with 0/0 on left down corner.\n");
         sb.append("File: ");
         sb.append(sourceFile.getAbsolutePath());
-        sb.append("\n{");
+        sb.append("\n");
+        sb.append(getJSONArrayAsString());
+        myWriter.write(sb.toString());
+        myWriter.close();
+    }
+
+    public String getJSONArrayAsString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
         for (int i = 0; i < polygon.size(); i++) {
             Point p = polygon.get(i);
             float x = (float) p.x / image.getWidth();
@@ -241,8 +249,7 @@ public class DecoratorPanel extends JPanel {
             }
         }
         sb.append("}");
-        myWriter.write(sb.toString());
-        myWriter.close();
+        return sb.toString();
     }
 
     private void debugPoint(String message, Point p) {

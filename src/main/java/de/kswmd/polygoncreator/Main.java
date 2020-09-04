@@ -5,6 +5,9 @@
  */
 package de.kswmd.polygoncreator;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
@@ -67,6 +70,7 @@ public class Main extends javax.swing.JFrame {
         fileMenu = new javax.swing.JMenu();
         openMenuItem = new javax.swing.JMenuItem();
         exportMenuItem = new javax.swing.JMenuItem();
+        copyToClipBoardMenuItem = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         infoMenuItem = new javax.swing.JMenuItem();
 
@@ -127,6 +131,14 @@ public class Main extends javax.swing.JFrame {
             }
         });
         fileMenu.add(exportMenuItem);
+
+        copyToClipBoardMenuItem.setText("Copy to clipboard");
+        copyToClipBoardMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                copyToClipBoardMenuItemActionPerformed(evt);
+            }
+        });
+        fileMenu.add(copyToClipBoardMenuItem);
 
         jMenuBar.add(fileMenu);
 
@@ -238,8 +250,8 @@ public class Main extends javax.swing.JFrame {
                         }
                     }
                 }
-            }while(canceled);
-        
+            } while (canceled);
+
         } else {
             LOGGER.debug("Couldn't export the polygon. Maybe no image loaded or not enough vertices? Need at least 3 vertices.");
             JOptionPane.showMessageDialog(this, "You need at least 3 Vertices.", "Not enough vertices", JOptionPane.ERROR_MESSAGE);
@@ -266,6 +278,18 @@ public class Main extends javax.swing.JFrame {
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         LOGGER.debug("BYE.");
     }//GEN-LAST:event_formWindowClosing
+
+    private void copyToClipBoardMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_copyToClipBoardMenuItemActionPerformed
+        if (decoratorPanel.isPolygon()) {
+            String myString = decoratorPanel.getJSONArrayAsString();
+            StringSelection stringSelection = new StringSelection(myString);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(stringSelection, null);
+        } else {
+            LOGGER.debug("Couldn't export the polygon. Maybe no image loaded or not enough vertices? Need at least 3 vertices.");
+            JOptionPane.showMessageDialog(this, "You need at least 3 Vertices.", "Not enough vertices", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_copyToClipBoardMenuItemActionPerformed
 
     /**
      * @param args the command line arguments
@@ -317,6 +341,7 @@ public class Main extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenuItem copyToClipBoardMenuItem;
     private de.kswmd.polygoncreator.DecoratorPanel decoratorPanel;
     private javax.swing.JMenuItem exportMenuItem;
     private javax.swing.JMenu fileMenu;
