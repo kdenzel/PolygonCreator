@@ -32,7 +32,7 @@ public class DecoratorPanel extends JPanel {
     private BufferedImage image;
     private File sourceFile;
     private final Polygon polygon = new Polygon();
-    private Optional<Point> selectedPoint = Optional.empty();
+    private Point selectedPoint = null;
     private final int dotRadius = 2;
     private int scaling;
 
@@ -176,7 +176,7 @@ public class DecoratorPanel extends JPanel {
                 for (int i = 0; i < polygon.size(); i++) {
                     Point p = polygon.get(i);
                     if (newX <= p.x + dotRadius && newX >= p.x - dotRadius && newY <= p.y + dotRadius && newY >= p.y - dotRadius) {
-                        selectedPoint = Optional.of(p);
+                        selectedPoint = p;
                         debugPoint("Select point at", p);
                         break;
                     }
@@ -186,7 +186,7 @@ public class DecoratorPanel extends JPanel {
     }
 
     public boolean hasSelectedPoint() {
-        return !selectedPoint.isEmpty();
+        return selectedPoint != null;
     }
 
     public void moveSelectedPoint(int x, int y) {
@@ -197,7 +197,7 @@ public class DecoratorPanel extends JPanel {
             int newY = (y - zeroY) / scaling;
             if (newX >= 0 && newX <= image.getWidth() && newY >= 0 && newY <= image.getHeight()) {
                 if (hasSelectedPoint()) {
-                    Point p = selectedPoint.get();
+                    Point p = selectedPoint;
                     p.x = newX;
                     p.y = newY;
                 }
@@ -206,9 +206,9 @@ public class DecoratorPanel extends JPanel {
     }
 
     public void removeSelection() {
-        if (selectedPoint.isPresent()) {
-            debugPoint("Remove selection from point", selectedPoint.get());
-            selectedPoint = Optional.empty();
+        if (hasSelectedPoint()) {
+            debugPoint("Remove selection from point", selectedPoint);
+            selectedPoint = null;
         }
     }
 
