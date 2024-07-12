@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2024 Kai.
+ *
  */
 package de.kswmd.polygoncreator;
 
@@ -15,7 +14,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Optional;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import org.apache.logging.log4j.LogManager;
@@ -235,19 +233,24 @@ public class DecoratorPanel extends JPanel {
     public String getJSONArrayAsString() {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
+        float x;
+        float y;
         for (int i = 0; i < polygon.size(); i++) {
             Point p = polygon.get(i);
-            float x = (float) p.x / image.getWidth();
-            float y = (float) (image.getHeight() - p.y) / image.getHeight();
+            
+            x = (float) p.x / image.getWidth();
+            y = (float) (image.getHeight() - p.y) / image.getHeight();
             sb.append(x);
             sb.append("f");
             sb.append(",");
             sb.append(y);
-            sb.append("f");
-            if (i != polygon.size() - 1) {
-                sb.append(",");
-            }
+            sb.append("f,");
         }
+        sb.append((float)polygon.get(0).x / image.getWidth());
+        sb.append("f");
+        sb.append(",");
+        sb.append((float)(image.getHeight() - polygon.get(0).y) / image.getHeight());
+        sb.append("f");
         sb.append("}");
         return sb.toString();
     }
